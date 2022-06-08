@@ -4,16 +4,16 @@ import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("example")
-public interface ExampleConfig extends Config
+@ConfigGroup("Steelseries Gamesense")
+public interface GamesenseConfig extends Config
 {
 	@ConfigItem(
 		keyName = "greeting",
-		name = "Welcome Greeting",
-		description = "The message to show to the user when they login"
+		name = "Port number:",
+		description = "This is the port to which we should send events so that gamesense can find it."
 	)
 	default String greeting()
 	{
-		return "Hello";
+		return "Set port here";
 	}
 }
