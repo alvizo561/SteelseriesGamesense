@@ -9,6 +9,7 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Skill;
+import net.runelite.api.events.FakeXpDrop;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.StatChanged;
@@ -31,7 +32,10 @@ import java.nio.charset.Charset;
 public class GamesensePlugin extends Plugin
 {
 	private String sse3Address;
-	private String game = "RuneLite";
+	private final String game = "RUNELITE";
+	private int lastXp =0;
+	private int currentHp =0;
+	private int currentPrayer =0;
 	@Inject
 	private Client client;
 
@@ -52,29 +56,68 @@ public class GamesensePlugin extends Plugin
 		log.info("Example stopped!");
 	}
 	@Subscribe
+	public void onFakeXpDrop(FakeXpDrop xpdrop){
+
+
+	}
+
+
+	@Subscribe
 	public void onStatChanged(StatChanged statChanged){
 
 		if (statChanged.getSkill() == Skill.HITPOINTS){
-			System.out.println("Current HP:" + statChanged.getBoostedLevel());
+			int lvl = statChanged.getBoostedLevel();
+			int max = statChanged.getLevel();
+			int percent = lvl *100 / max;
+			currentHp = lvl;
+			System.out.println("Current HP:" + percent);
 			String msg ="{" +
 					"  \"game\": \""+game+"\"," +
 					"  \"event\": \"HEALTH\"," +
-					"  \"data\": {\"value\": "+statChanged.getBoostedLevel()+"}" +
+					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
 			JSONObject jo = new JSONObject(msg);
 			System.out.println(jo.toString());
-			executePost("game_event",jo.toString());
+			executePost("game_event ",jo.toString());
 
 		} if  (statChanged.getSkill() == Skill.PRAYER){
-			System.out.println("Current Prayer:" + statChanged.getBoostedLevel());
+
+			int lvl = statChanged.getBoostedLevel();
+			int max = statChanged.getLevel();
+			int percent = lvl *100 / max;
+			currentPrayer = lvl;
+			System.out.println("Current Prayer:" + percent);
 			String msg ="{" +
 					"  \"game\": \""+game+"\"," +
 					"  \"event\": \"PRAYER\"," +
-					"  \"data\": {\"value\": "+statChanged.getBoostedLevel()+"}" +
+					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
 			JSONObject jo = new JSONObject(msg);
 			System.out.println(jo.toString());
-			executePost("game_event",jo.toString());
+			executePost("game_event ",jo.toString());
+		}
+		//if there was a change in XP we have had an xp drop
+		if (statChanged.getXp() != lastXp) {
+			if (statChanged.getSkill() == Skill.PRAYER && currentPrayer ==statChanged.getBoostedLevel()){}
+			else if (statChanged.getSkill() == Skill.HITPOINTS && currentHp ==statChanged.getBoostedLevel()){}
+			else {
+				lastXp = statChanged.getXp();
+				int start = getStartXpOfLvl(statChanged.getLevel());
+				int end = getEndXPOfLvl(statChanged.getLevel());
+				int percent = (lastXp-start) *100 / (end-start);
+
+				System.out.println(lastXp);
+				System.out.println(percent);
+				if (percent > 100) {percent = 100;}
+				String msg ="{" +
+						"  \"game\": \""+game+"\"," +
+						"  \"event\": \"CURRENTSKILL\"," +
+						"  \"data\": {\"value\": "+percent+"}" +
+						"}" ;
+				JSONObject jo = new JSONObject(msg);
+				System.out.println(jo.toString());
+				executePost("game_event ",jo.toString());
+			}
 		}
 
 
@@ -94,7 +137,7 @@ public class GamesensePlugin extends Plugin
 	{
 		if (gameStateChanged.getGameState().equals(GameState.HOPPING)|| gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
-			System.out.println(sse3Address);
+
 			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Connected to: " + sse3Address, "Gamesense");
 		}
 	}
@@ -150,7 +193,7 @@ public class GamesensePlugin extends Plugin
 	private void gameRegister(){
 		String msg ="{" +
 				"  \"game\": \""+game+"\"," +
-				"  \"game_display_name\": \"RuneLite\"," +
+				"  \"game_display_name\": \"Old School runescape\"," +
 				"  \"developer\": \"Gmoley\"" +
 				"}";
 		JSONObject jo = new JSONObject(msg);
@@ -164,47 +207,103 @@ public class GamesensePlugin extends Plugin
 				"  \"min_value\": 0," +
 				"  \"max_value\": 100," +
 				"  \"icon_id\": "+IconId+"," +
-				"\"value_optional\": false"+
+				"\"handlers\": [" +
+				"    {" +
+				"      \"device-type\": \"keyboard\"," +
+				"      \"color\": {" +
+				"        \"gradient\": {" +
+				"          \"zero\": {" +
+				"            \"red\": 0," +
+				"            \"green\": 0, " +
+				"            \"blue\": 0" +
+				"          }," +
+				"          \"hundred\": {" +
+				"            \"red\": 0, " +
+				"            \"green\": 255, " +
+				"            \"blue\": 0" +
+				"          }" +
+				"        }" +
+				"      }," +
+				"      \"mode\": \"percent\"" +
+				"    }" +
+				"  ]"+
 				"}";
 		JSONObject jo = new JSONObject(msg);
 		System.out.println(jo.toString());
-		executePost("game_metadata",jo.toString());
+		executePost("register_game_event",jo.toString());
+		System.out.println(game);
 	}
 
 	private void initGamesense(){
+
 			gameRegister();
 			registerStat("HEALTH",38);
 			registerStat("PRAYER",40);
-			registerStat("CURRENTSKILL",0);
+			registerStat("CURRENTSKILL",2);
 	}
 
 
 	public void executePost(String extraAddress, String jsonData) {
+
+		//System.out.println(sse3Address);
 		try {
-			URL url = new URL(sse3Address + extraAddress);
+			URL url = new URL(sse3Address +"/"+ extraAddress);
 			// Create an HTTP connection to core
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			// 1ms read timeout, as we don't care to read the result, just send & forget
-			connection.setReadTimeout(1);
+			//connection.setReadTimeout(1);
 			connection.setUseCaches(false);
 			connection.setDoOutput(true);
 			connection.setDoInput(true);
 			connection.setRequestMethod("POST");
 			connection.setRequestProperty("Content-Type", "application/json");
+			connection.setRequestProperty("Accept", "application/json");
 
 			// Send the json data
 			DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
 			byte[] data = jsonData.getBytes(Charset.forName("UTF-8"));
 			wr.write(data);
+			try(BufferedReader br = new BufferedReader(
+					new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+				StringBuilder response = new StringBuilder();
+				String responseLine = null;
+				while ((responseLine = br.readLine()) != null) {
+					response.append(responseLine.trim());
+				}
+				//System.out.println(response.toString());
+			}
+
 			wr.flush();
 			wr.close();
 			// The following triggers the request to actually send. Just one of the quirks of HttpURLConnection.
-			connection.getInputStream();
+			//connection.getInputStream();  // this line is crashing the requests
 			// Done, make sure we disconnect
 			connection.disconnect();
 
 		} catch (Exception e) {
-			// e.printStackTrace();
+			 e.printStackTrace();
 		}
+
+	}
+	private int getEndXPOfLvl(int lvl){
+		int xp = getStartXpOfLvl(lvl) + getXpForLvl(lvl);
+		System.out.println("XP for next lvl: "+xp);
+		return xp;
+	}
+
+	private int getStartXpOfLvl(int lvl){
+		int total =0;
+		for (int i =1;i<=lvl;i++){
+			total += getXpForLvl(i);
+		}
+		System.out.println("Total xp for lvl "+total);
+		return total;
+	}
+
+	private int getXpForLvl(int lvl){
+		double exp = (float)(lvl-1)/7;
+		double amount = 1.0/4.0 *((lvl-1) + 300*Math.pow(2.0,exp));
+
+		return (int) amount;
 	}
 }
