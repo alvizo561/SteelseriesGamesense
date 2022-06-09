@@ -120,9 +120,19 @@ public class GamesensePlugin extends Plugin
 	}
 	@Subscribe
 	public void onGameTick(GameTick tick){
+
+		//Keepalive can be replaced with run energy since it is also updated every gametick
 		//Keepalive of gamesense --> gamesense requires an event at least every 15s, this counts as an event.
 		//This way we keep the device lights active even if the user is AFK.
-		executePost("game_heartbeat","{  \"game\": \""+game+"\"}");
+		//executePost("game_heartbeat","{  \"game\": \""+game+"\"}");
+
+		String msg ="{" +
+				"  \"game\": \""+game+"\"," +
+				"  \"event\": \"RUNENERGY\"," +
+				"  \"data\": {\"value\": "+client.getEnergy()+"}" +
+				"}" ;
+		JSONObject jo = new JSONObject(msg);
+		executePost("game_event ",jo.toString());	//update the run energy
 	}
 
 
@@ -186,7 +196,7 @@ public class GamesensePlugin extends Plugin
 	private void gameRegister(){
 		String msg ="{" +
 				"  \"game\": \""+game+"\"," +
-				"  \"game_display_name\": \"Old School runescape\"," +
+				"  \"game_display_name\": \"Old School Runescape\"," +
 				"  \"developer\": \"Gmoley\"" +
 				"}";
 		JSONObject jo = new JSONObject(msg);
@@ -232,7 +242,8 @@ public class GamesensePlugin extends Plugin
 			gameRegister();
 			registerStat("HEALTH",38);
 			registerStat("PRAYER",40);
-			registerStat("CURRENTSKILL",2);
+			registerStat("CURRENTSKILL",13);
+			registerStat("RUNENERGY",16);
 	}
 
 
@@ -280,7 +291,7 @@ public class GamesensePlugin extends Plugin
 	}
 	private int getEndXPOfLvl(int lvl){
 		int xp = getStartXpOfLvl(lvl) + getXpForLvl(lvl);
-		System.out.println("XP for next lvl: "+xp);
+
 		return xp;
 	}
 
@@ -289,7 +300,7 @@ public class GamesensePlugin extends Plugin
 		for (int i =1;i<=lvl;i++){
 			total += getXpForLvl(i);
 		}
-		System.out.println("Total xp for lvl "+total);
+
 		return total;
 	}
 
