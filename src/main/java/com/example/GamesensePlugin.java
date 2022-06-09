@@ -3,13 +3,13 @@ package com.example;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 
-import jdk.internal.access.JavaNetHttpCookieAccess;
+
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.Skill;
-import net.runelite.api.events.FakeXpDrop;
+
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.StatChanged;
@@ -32,7 +32,9 @@ import java.nio.charset.Charset;
 public class GamesensePlugin extends Plugin
 {
 	private String sse3Address;
-	private final String game = "RUNELITE";
+	private final String game = "RUNELITE"; //required to identify the game on steelseries client
+
+	//help vars to determine what should change
 	private int lastXp =0;
 	private int currentHp =0;
 	private int currentPrayer =0;
@@ -46,8 +48,8 @@ public class GamesensePlugin extends Plugin
 	protected void startUp() throws Exception
 	{
 		log.info("Example started!");
-		FindSSE3Port();
-		initGamesense();
+		FindSSE3Port();	//finding the steelseries client port
+		initGamesense(); //initialise the events that are displayable on the keyboard
 	}
 
 	@Override
@@ -55,12 +57,6 @@ public class GamesensePlugin extends Plugin
 	{
 		log.info("Example stopped!");
 	}
-	@Subscribe
-	public void onFakeXpDrop(FakeXpDrop xpdrop){
-
-
-	}
-
 
 	@Subscribe
 	public void onStatChanged(StatChanged statChanged){
@@ -70,14 +66,14 @@ public class GamesensePlugin extends Plugin
 			int max = statChanged.getLevel();
 			int percent = lvl *100 / max;
 			currentHp = lvl;
-			System.out.println("Current HP:" + percent);
+
 			String msg ="{" +
 					"  \"game\": \""+game+"\"," +
 					"  \"event\": \"HEALTH\"," +
 					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
 			JSONObject jo = new JSONObject(msg);
-			System.out.println(jo.toString());
+
 			executePost("game_event ",jo.toString());
 
 		} if  (statChanged.getSkill() == Skill.PRAYER){
@@ -86,14 +82,14 @@ public class GamesensePlugin extends Plugin
 			int max = statChanged.getLevel();
 			int percent = lvl *100 / max;
 			currentPrayer = lvl;
-			System.out.println("Current Prayer:" + percent);
+
 			String msg ="{" +
 					"  \"game\": \""+game+"\"," +
 					"  \"event\": \"PRAYER\"," +
 					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
 			JSONObject jo = new JSONObject(msg);
-			System.out.println(jo.toString());
+
 			executePost("game_event ",jo.toString());
 		}
 		//if there was a change in XP we have had an xp drop
@@ -106,8 +102,6 @@ public class GamesensePlugin extends Plugin
 				int end = getEndXPOfLvl(statChanged.getLevel());
 				int percent = (lastXp-start) *100 / (end-start);
 
-				System.out.println(lastXp);
-				System.out.println(percent);
 				if (percent > 100) {percent = 100;}
 				String msg ="{" +
 						"  \"game\": \""+game+"\"," +
@@ -115,7 +109,7 @@ public class GamesensePlugin extends Plugin
 						"  \"data\": {\"value\": "+percent+"}" +
 						"}" ;
 				JSONObject jo = new JSONObject(msg);
-				System.out.println(jo.toString());
+
 				executePost("game_event ",jo.toString());
 			}
 		}
@@ -141,7 +135,6 @@ public class GamesensePlugin extends Plugin
 			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Connected to: " + sse3Address, "Gamesense");
 		}
 	}
-
 	@Provides
 	GamesenseConfig provideConfig(ConfigManager configManager)
 	{
@@ -197,7 +190,7 @@ public class GamesensePlugin extends Plugin
 				"  \"developer\": \"Gmoley\"" +
 				"}";
 		JSONObject jo = new JSONObject(msg);
-		System.out.println(jo.toString());
+
 		executePost("game_metadata",jo.toString());
 	}
 	private void registerStat(String event, int IconId){
@@ -229,9 +222,9 @@ public class GamesensePlugin extends Plugin
 				"  ]"+
 				"}";
 		JSONObject jo = new JSONObject(msg);
-		System.out.println(jo.toString());
+
 		executePost("register_game_event",jo.toString());
-		System.out.println(game);
+
 	}
 
 	private void initGamesense(){

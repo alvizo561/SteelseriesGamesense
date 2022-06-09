@@ -7,6 +7,7 @@ import net.runelite.client.config.ConfigItem;
 @ConfigGroup("Steelseries Gamesense")
 public interface GamesenseConfig extends Config
 {
+	/*
 	@ConfigItem(
 		keyName = "greeting",
 		name = "Port number:",
@@ -15,5 +16,5 @@ public interface GamesenseConfig extends Config
 	default String greeting()
 	{
 		return "Set port here";
-	}
+	}*/
 }
