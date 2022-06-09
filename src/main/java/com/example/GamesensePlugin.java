@@ -5,10 +5,7 @@ import javax.inject.Inject;
 
 
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.Skill;
+import net.runelite.api.*;
 
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
@@ -118,21 +115,29 @@ public class GamesensePlugin extends Plugin
 
 
 	}
-	@Subscribe
-	public void onGameTick(GameTick tick){
-
-		//Keepalive can be replaced with run energy since it is also updated every gametick
-		//Keepalive of gamesense --> gamesense requires an event at least every 15s, this counts as an event.
-		//This way we keep the device lights active even if the user is AFK.
-		//executePost("game_heartbeat","{  \"game\": \""+game+"\"}");
-
+	private void sendEnergy(){
 		String msg ="{" +
 				"  \"game\": \""+game+"\"," +
-				"  \"event\": \"RUNENERGY\"," +
+				"  \"event\": \"RUN_ENERGY\"," +
 				"  \"data\": {\"value\": "+client.getEnergy()+"}" +
 				"}" ;
 		JSONObject jo = new JSONObject(msg);
 		executePost("game_event ",jo.toString());	//update the run energy
+	}
+	private void sendSpecialAttackPercent(){
+		String msg ="{" +
+				"  \"game\": \""+game+"\"," +
+				"  \"event\": \"SPECIAL_ATTACK\"," +
+				"  \"data\": {\"value\": "+client.getVar(VarPlayer.SPECIAL_ATTACK_PERCENT)/10+"}" +
+				"}" ;
+		JSONObject jo = new JSONObject(msg);
+		executePost("game_event ",jo.toString());	//update the run energy
+	}
+
+	@Subscribe
+	public void onGameTick(GameTick tick){
+		sendEnergy();
+		sendSpecialAttackPercent();
 	}
 
 
@@ -196,7 +201,7 @@ public class GamesensePlugin extends Plugin
 	private void gameRegister(){
 		String msg ="{" +
 				"  \"game\": \""+game+"\"," +
-				"  \"game_display_name\": \"Old School Runescape\"," +
+				"  \"game_display_name\": \"1Old School Runescape\"," +
 				"  \"developer\": \"Gmoley\"" +
 				"}";
 		JSONObject jo = new JSONObject(msg);
@@ -243,7 +248,8 @@ public class GamesensePlugin extends Plugin
 			registerStat("HEALTH",38);
 			registerStat("PRAYER",40);
 			registerStat("CURRENTSKILL",13);
-			registerStat("RUNENERGY",16);
+			registerStat("RUN_ENERGY",16);
+			registerStat("SPECIAL_ATTACK",0);
 	}
 
 
