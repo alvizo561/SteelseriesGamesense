@@ -197,7 +197,7 @@ public class GamesensePlugin extends Plugin
 	private void gameRegister(){
 		String msg ="{" +
 				"  \"game\": \""+game+"\"," +
-				"  \"game_display_name\": \"1Old School Runescape\"," +
+				"  \"game_display_name\": \"Old School Runescape\"," +
 				"  \"developer\": \"Gmoley\"" +
 				"}";
 		//JSONObject jo = new JSONObject(msg);
