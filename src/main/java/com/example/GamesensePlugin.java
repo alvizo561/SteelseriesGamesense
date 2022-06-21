@@ -1,5 +1,7 @@
 package com.example;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 
@@ -14,8 +16,7 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import org.json.JSONException;
-import org.json.JSONObject;
+
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -69,7 +70,7 @@ public class GamesensePlugin extends Plugin
 					"  \"event\": \"HEALTH\"," +
 					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
-			JSONObject jo = new JSONObject(msg);
+			JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 
 			executePost("game_event ",jo.toString());
 
@@ -85,7 +86,7 @@ public class GamesensePlugin extends Plugin
 					"  \"event\": \"PRAYER\"," +
 					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
-			JSONObject jo = new JSONObject(msg);
+			JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 
 			executePost("game_event ",jo.toString());
 		}
@@ -105,7 +106,7 @@ public class GamesensePlugin extends Plugin
 						"  \"event\": \"CURRENTSKILL\"," +
 						"  \"data\": {\"value\": "+percent+"}" +
 						"}" ;
-				JSONObject jo = new JSONObject(msg);
+				JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 
 				executePost("game_event ",jo.toString());
 			}
@@ -121,7 +122,7 @@ public class GamesensePlugin extends Plugin
 				"  \"event\": \"RUN_ENERGY\"," +
 				"  \"data\": {\"value\": "+client.getEnergy()+"}" +
 				"}" ;
-		JSONObject jo = new JSONObject(msg);
+		JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 		executePost("game_event ",jo.toString());	//update the run energy
 	}
 	private void sendSpecialAttackPercent(){
@@ -130,7 +131,7 @@ public class GamesensePlugin extends Plugin
 				"  \"event\": \"SPECIAL_ATTACK\"," +
 				"  \"data\": {\"value\": "+client.getVar(VarPlayer.SPECIAL_ATTACK_PERCENT)/10+"}" +
 				"}" ;
-		JSONObject jo = new JSONObject(msg);
+		JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 		executePost("game_event ",jo.toString());	//update the run energy
 	}
 
@@ -184,18 +185,13 @@ public class GamesensePlugin extends Plugin
 			e.printStackTrace();
 			System.out.println("Unhandled exception.");
 		}
-
-		try {
 			// Save the address to SteelSeries Engine 3 for game events.
 			if(!jsonAddressStr.equals("")) {
-				JSONObject obj = new JSONObject(jsonAddressStr);
-
-				sse3Address = "http://" + obj.getString("address");
+				//JSONObject obj = new JSONObject(jsonAddressStr);
+				JsonObject obj = new Gson().fromJson(jsonAddressStr,JsonObject.class);
+				sse3Address = "http://" + obj.get("address").getAsString();
 			}
-		} catch (JSONException e) {
-			e.printStackTrace();
-			System.out.println("Exception creating JSONObject from coreProps.json.");
-		}
+
 	}
 
 	private void gameRegister(){
@@ -204,9 +200,10 @@ public class GamesensePlugin extends Plugin
 				"  \"game_display_name\": \"1Old School Runescape\"," +
 				"  \"developer\": \"Gmoley\"" +
 				"}";
-		JSONObject jo = new JSONObject(msg);
+		//JSONObject jo = new JSONObject(msg);
+		JsonObject object = new Gson().fromJson(msg,JsonObject.class);
 
-		executePost("game_metadata",jo.toString());
+		executePost("game_metadata",object.toString());
 	}
 	private void registerStat(String event, int IconId){
 		String msg = 	"{" +
@@ -236,9 +233,10 @@ public class GamesensePlugin extends Plugin
 				"    }" +
 				"  ]"+
 				"}";
-		JSONObject jo = new JSONObject(msg);
+		JsonObject object = new Gson().fromJson(msg,JsonObject.class);
+		//JSONObject jo = new JSONObject(msg);
 
-		executePost("register_game_event",jo.toString());
+		executePost("register_game_event",object.toString());
 
 	}
 

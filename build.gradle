@@ -10,14 +10,14 @@ repositories {
 	mavenCentral()
 }
 
-def runeLiteVersion = '1.8.21'
+def runeLiteVersion = '1.8.24'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
 
 	compileOnly 'org.projectlombok:lombok:1.18.20'
 	annotationProcessor 'org.projectlombok:lombok:1.18.20'
-	implementation group: 'org.json', name: 'json', version: '20220320'
+	implementation 'com.google.code.gson:gson:2.9.0'
 	testImplementation 'junit:junit:4.12'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
