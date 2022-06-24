@@ -70,9 +70,9 @@ public class GamesensePlugin extends Plugin
 					"  \"event\": \"HEALTH\"," +
 					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
-			JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 
-			executePost("game_event ",jo.toString());
+
+			executePost("game_event ",msg);
 
 		} if  (statChanged.getSkill() == Skill.PRAYER){
 
@@ -86,9 +86,9 @@ public class GamesensePlugin extends Plugin
 					"  \"event\": \"PRAYER\"," +
 					"  \"data\": {\"value\": "+percent+"}" +
 					"}" ;
-			JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 
-			executePost("game_event ",jo.toString());
+
+			executePost("game_event ",msg);
 		}
 		//if there was a change in XP we have had an xp drop
 		if (statChanged.getXp() != lastXp) {
@@ -106,9 +106,9 @@ public class GamesensePlugin extends Plugin
 						"  \"event\": \"CURRENTSKILL\"," +
 						"  \"data\": {\"value\": "+percent+"}" +
 						"}" ;
-				JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
 
-				executePost("game_event ",jo.toString());
+
+				executePost("game_event ",msg);
 			}
 		}
 
@@ -122,8 +122,8 @@ public class GamesensePlugin extends Plugin
 				"  \"event\": \"RUN_ENERGY\"," +
 				"  \"data\": {\"value\": "+client.getEnergy()+"}" +
 				"}" ;
-		JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
-		executePost("game_event ",jo.toString());	//update the run energy
+
+		executePost("game_event ",msg);	//update the run energy
 	}
 	private void sendSpecialAttackPercent(){
 		String msg ="{" +
@@ -131,8 +131,8 @@ public class GamesensePlugin extends Plugin
 				"  \"event\": \"SPECIAL_ATTACK\"," +
 				"  \"data\": {\"value\": "+client.getVar(VarPlayer.SPECIAL_ATTACK_PERCENT)/10+"}" +
 				"}" ;
-		JsonObject jo = new Gson().fromJson(msg,JsonObject.class);
-		executePost("game_event ",jo.toString());	//update the run energy
+
+		executePost("game_event ",msg);	//update the run energy
 	}
 
 	@Subscribe
@@ -142,15 +142,6 @@ public class GamesensePlugin extends Plugin
 	}
 
 
-	@Subscribe
-	public void onGameStateChanged(GameStateChanged gameStateChanged)
-	{
-		if (gameStateChanged.getGameState().equals(GameState.HOPPING)|| gameStateChanged.getGameState() == GameState.LOGGED_IN)
-		{
-
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Connected to: " + sse3Address, "Gamesense");
-		}
-	}
 	@Provides
 	GamesenseConfig provideConfig(ConfigManager configManager)
 	{
@@ -187,7 +178,7 @@ public class GamesensePlugin extends Plugin
 		}
 			// Save the address to SteelSeries Engine 3 for game events.
 			if(!jsonAddressStr.equals("")) {
-				//JSONObject obj = new JSONObject(jsonAddressStr);
+
 				JsonObject obj = new Gson().fromJson(jsonAddressStr,JsonObject.class);
 				sse3Address = "http://" + obj.get("address").getAsString();
 			}
@@ -200,10 +191,10 @@ public class GamesensePlugin extends Plugin
 				"  \"game_display_name\": \"Old School Runescape\"," +
 				"  \"developer\": \"Gmoley\"" +
 				"}";
-		//JSONObject jo = new JSONObject(msg);
-		JsonObject object = new Gson().fromJson(msg,JsonObject.class);
 
-		executePost("game_metadata",object.toString());
+
+
+		executePost("game_metadata",msg);
 	}
 	private void registerStat(String event, int IconId){
 		String msg = 	"{" +
@@ -233,10 +224,9 @@ public class GamesensePlugin extends Plugin
 				"    }" +
 				"  ]"+
 				"}";
-		JsonObject object = new Gson().fromJson(msg,JsonObject.class);
-		//JSONObject jo = new JSONObject(msg);
 
-		executePost("register_game_event",object.toString());
+
+		executePost("register_game_event",msg);
 
 	}
 
