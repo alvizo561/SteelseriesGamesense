@@ -2,20 +2,18 @@ package com.example;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.inject.Provides;
 import javax.inject.Inject;
-
+import javax.swing.*;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.StatChanged;
-import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.util.OSType;
+import okhttp3.*;
 
 
 import java.io.*;
@@ -30,7 +28,7 @@ import java.nio.charset.Charset;
 public class GamesensePlugin extends Plugin
 {
 	private String sse3Address;
-	private final String game = "RUNELITE"; //required to identify the game on steelseries client
+	public static final String game = "RUNELITE"; //required to identify the game on steelseries client made it static so it only needs change in one place if ever needed (probably not)
 
 	//help vars to determine what should change
 	private int lastXp =0;
@@ -38,9 +36,8 @@ public class GamesensePlugin extends Plugin
 	private int currentPrayer =0;
 	@Inject
 	private Client client;
-
 	@Inject
-	private GamesenseConfig config;
+	private OkHttpClient okHttpClient;
 
 	@Override
 	protected void startUp() throws Exception
@@ -65,14 +62,9 @@ public class GamesensePlugin extends Plugin
 			int percent = lvl *100 / max;
 			currentHp = lvl;
 
-			String msg ="{" +
-					"  \"game\": \""+game+"\"," +
-					"  \"event\": \"HEALTH\"," +
-					"  \"data\": {\"value\": "+percent+"}" +
-					"}" ;
+			GameEvent event = new GameEvent(TrackedStats.HEALTH,percent);
 
-
-			executePost("game_event ",msg);
+			executePost("game_event ",event.toJsonString());
 
 		} if  (statChanged.getSkill() == Skill.PRAYER){
 
@@ -80,15 +72,8 @@ public class GamesensePlugin extends Plugin
 			int max = statChanged.getLevel();
 			int percent = lvl *100 / max;
 			currentPrayer = lvl;
-
-			String msg ="{" +
-					"  \"game\": \""+game+"\"," +
-					"  \"event\": \"PRAYER\"," +
-					"  \"data\": {\"value\": "+percent+"}" +
-					"}" ;
-
-
-			executePost("game_event ",msg);
+			GameEvent event = new GameEvent(TrackedStats.PRAYER,percent);
+			executePost("game_event ",event.toJsonString());
 		}
 		//if there was a change in XP we have had an xp drop
 		if (statChanged.getXp() != lastXp) {
@@ -101,14 +86,8 @@ public class GamesensePlugin extends Plugin
 				int percent = (lastXp-start) *100 / (end-start);
 
 				if (percent > 100) {percent = 100;}
-				String msg ="{" +
-						"  \"game\": \""+game+"\"," +
-						"  \"event\": \"CURRENTSKILL\"," +
-						"  \"data\": {\"value\": "+percent+"}" +
-						"}" ;
-
-
-				executePost("game_event ",msg);
+				GameEvent event = new GameEvent(TrackedStats.CURRENTSKILL,percent);
+				executePost("game_event ",event.toJsonString());
 			}
 		}
 
@@ -117,22 +96,13 @@ public class GamesensePlugin extends Plugin
 
 	}
 	private void sendEnergy(){
-		String msg ="{" +
-				"  \"game\": \""+game+"\"," +
-				"  \"event\": \"RUN_ENERGY\"," +
-				"  \"data\": {\"value\": "+client.getEnergy()+"}" +
-				"}" ;
-
-		executePost("game_event ",msg);	//update the run energy
+		GameEvent event = new GameEvent(TrackedStats.RUN_ENERGY,client.getEnergy());
+		executePost("game_event ",event.toJsonString());//update the run energy
 	}
 	private void sendSpecialAttackPercent(){
-		String msg ="{" +
-				"  \"game\": \""+game+"\"," +
-				"  \"event\": \"SPECIAL_ATTACK\"," +
-				"  \"data\": {\"value\": "+client.getVar(VarPlayer.SPECIAL_ATTACK_PERCENT)/10+"}" +
-				"}" ;
+		GameEvent event = new GameEvent(TrackedStats.SPECIAL_ATTACK,client.getVar(VarPlayer.SPECIAL_ATTACK_PERCENT)/10);
+		executePost("game_event ",event.toJsonString());//update the special attack
 
-		executePost("game_event ",msg);	//update the run energy
 	}
 
 	@Subscribe
@@ -142,11 +112,6 @@ public class GamesensePlugin extends Plugin
 	}
 
 
-	@Provides
-	GamesenseConfig provideConfig(ConfigManager configManager)
-	{
-		return configManager.getConfig(GamesenseConfig.class);
-	}
 
 
 	//find the port to which we should connect
@@ -156,7 +121,10 @@ public class GamesensePlugin extends Plugin
 		String jsonAddressStr = "";
 		String corePropsFileName;
 		// Check if we should be using the Windows path to coreProps.json
-		if(System.getProperty("os.name").startsWith("Windows")) {
+
+
+
+		if(OSType.getOSType().equals(OSType.Windows)) {
 			corePropsFileName = System.getenv("PROGRAMDATA") +
 					"\\SteelSeries\\SteelSeries Engine 3\\coreProps.json";
 		} else {
@@ -186,101 +154,43 @@ public class GamesensePlugin extends Plugin
 	}
 
 	private void gameRegister(){
-		String msg ="{" +
-				"  \"game\": \""+game+"\"," +
-				"  \"game_display_name\": \"Old School Runescape\"," +
-				"  \"developer\": \"Gmoley\"" +
-				"}";
-
-
-
-		executePost("game_metadata",msg);
+		JsonObject object = new JsonObject();
+		object.addProperty("game",game);
+		object.addProperty("game_display_name","Old School Runescape");
+		object.addProperty("developer","Gmoley");
+		executePost("game_metadata",object.toString());
 	}
-	private void registerStat(String event, int IconId){
-		String msg = 	"{" +
-				"  \"game\": \""+game+"\"," +
-				"  \"event\": \""+event+"\"," +
-				"  \"min_value\": 0," +
-				"  \"max_value\": 100," +
-				"  \"icon_id\": "+IconId+"," +
-				"\"handlers\": [" +
-				"    {" +
-				"      \"device-type\": \"keyboard\"," +
-				"      \"color\": {" +
-				"        \"gradient\": {" +
-				"          \"zero\": {" +
-				"            \"red\": 0," +
-				"            \"green\": 0, " +
-				"            \"blue\": 0" +
-				"          }," +
-				"          \"hundred\": {" +
-				"            \"red\": 0, " +
-				"            \"green\": 255, " +
-				"            \"blue\": 0" +
-				"          }" +
-				"        }" +
-				"      }," +
-				"      \"mode\": \"percent\"" +
-				"    }" +
-				"  ]"+
-				"}";
-
-
-		executePost("register_game_event",msg);
+	private void registerStat(TrackedStats event, int IconId){
+		StatRegister statRegister = new StatRegister(event,0,100, IconId);
+		executePost("register_game_event",statRegister.toJsonString());
 
 	}
 
 	private void initGamesense(){
 
 			gameRegister();
-			registerStat("HEALTH",38);
-			registerStat("PRAYER",40);
-			registerStat("CURRENTSKILL",13);
-			registerStat("RUN_ENERGY",16);
-			registerStat("SPECIAL_ATTACK",0);
+			registerStat(TrackedStats.HEALTH,38);
+			registerStat(TrackedStats.PRAYER,40);
+			registerStat(TrackedStats.CURRENTSKILL,13);
+			registerStat(TrackedStats.RUN_ENERGY,16);
+			registerStat(TrackedStats.SPECIAL_ATTACK,0);
 	}
 
 
-	public void executePost(String extraAddress, String jsonData) {
+	public void executePost(String extraAddress, String jsonData)  {
 
-		//System.out.println(sse3Address);
-		try {
-			URL url = new URL(sse3Address +"/"+ extraAddress);
-			// Create an HTTP connection to core
-			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-			// 1ms read timeout, as we don't care to read the result, just send & forget
-			//connection.setReadTimeout(1);
-			connection.setUseCaches(false);
-			connection.setDoOutput(true);
-			connection.setDoInput(true);
-			connection.setRequestMethod("POST");
-			connection.setRequestProperty("Content-Type", "application/json");
-			connection.setRequestProperty("Accept", "application/json");
-
-			// Send the json data
-			DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-			byte[] data = jsonData.getBytes(Charset.forName("UTF-8"));
-			wr.write(data);
-			try(BufferedReader br = new BufferedReader(
-					new InputStreamReader(connection.getInputStream(), "utf-8"))) {
-				StringBuilder response = new StringBuilder();
-				String responseLine = null;
-				while ((responseLine = br.readLine()) != null) {
-					response.append(responseLine.trim());
-				}
-				//System.out.println(response.toString());
-			}
-
-			wr.flush();
-			wr.close();
-			// The following triggers the request to actually send. Just one of the quirks of HttpURLConnection.
-			//connection.getInputStream();  // this line is crashing the requests
-			// Done, make sure we disconnect
-			connection.disconnect();
-
-		} catch (Exception e) {
-			 e.printStackTrace();
-		}
+		RequestBody body = RequestBody.create(MediaType.parse("application/json"),jsonData);
+		Request request = new Request.Builder()
+				.url(sse3Address +"/"+ extraAddress)
+				.post(body)
+				.build();
+	Call call = okHttpClient.newCall(request);
+	try{
+		Response response = call.execute();
+		response.close();
+	} catch (IOException e){
+		e.printStackTrace();
+	}
 
 	}
 	private int getEndXPOfLvl(int lvl){
