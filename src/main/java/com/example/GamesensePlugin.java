@@ -28,7 +28,8 @@ import java.nio.charset.Charset;
 public class GamesensePlugin extends Plugin
 {
 	private String sse3Address;
-	public static final String game = "RUNELITE"; //required to identify the game on steelseries client made it static so it only needs change in one place if ever needed (probably not)
+	public static final String game = "RUNELITE"; //required to identify the game on steelseries client
+	// made it static so it only needs change in one place if ever needed
 
 	//help vars to determine what should change
 	private int lastXp =0;
@@ -64,7 +65,7 @@ public class GamesensePlugin extends Plugin
 
 			GameEvent event = new GameEvent(TrackedStats.HEALTH,percent);
 
-			executePost("game_event ",event.toJsonString());
+			executePost("game_event ",event.buildJson());
 
 		} if  (statChanged.getSkill() == Skill.PRAYER){
 
@@ -73,7 +74,7 @@ public class GamesensePlugin extends Plugin
 			int percent = lvl *100 / max;
 			currentPrayer = lvl;
 			GameEvent event = new GameEvent(TrackedStats.PRAYER,percent);
-			executePost("game_event ",event.toJsonString());
+			executePost("game_event ",event.buildJson());
 		}
 		//if there was a change in XP we have had an xp drop
 		if (statChanged.getXp() != lastXp) {
@@ -87,7 +88,7 @@ public class GamesensePlugin extends Plugin
 
 				if (percent > 100) {percent = 100;}
 				GameEvent event = new GameEvent(TrackedStats.CURRENTSKILL,percent);
-				executePost("game_event ",event.toJsonString());
+				executePost("game_event ",event.buildJson());
 			}
 		}
 
@@ -97,11 +98,11 @@ public class GamesensePlugin extends Plugin
 	}
 	private void sendEnergy(){
 		GameEvent event = new GameEvent(TrackedStats.RUN_ENERGY,client.getEnergy());
-		executePost("game_event ",event.toJsonString());//update the run energy
+		executePost("game_event ",event.buildJson());//update the run energy
 	}
 	private void sendSpecialAttackPercent(){
 		GameEvent event = new GameEvent(TrackedStats.SPECIAL_ATTACK,client.getVar(VarPlayer.SPECIAL_ATTACK_PERCENT)/10);
-		executePost("game_event ",event.toJsonString());//update the special attack
+		executePost("game_event ",event.buildJson());//update the special attack
 
 	}
 
@@ -146,9 +147,8 @@ public class GamesensePlugin extends Plugin
 		}
 			// Save the address to SteelSeries Engine 3 for game events.
 			if(!jsonAddressStr.equals("")) {
-
-				JsonObject obj = new Gson().fromJson(jsonAddressStr,JsonObject.class);
-				sse3Address = "http://" + obj.get("address").getAsString();
+				SseAddressBuilder urlBuilder = new SseAddressBuilder(jsonAddressStr);
+				sse3Address = urlBuilder.getUrl();
 			}
 
 	}
@@ -158,11 +158,11 @@ public class GamesensePlugin extends Plugin
 		object.addProperty("game",game);
 		object.addProperty("game_display_name","Old School Runescape");
 		object.addProperty("developer","Gmoley");
-		executePost("game_metadata",object.toString());
+		executePost("game_metadata",object);
 	}
 	private void registerStat(TrackedStats event, int IconId){
 		StatRegister statRegister = new StatRegister(event,0,100, IconId);
-		executePost("register_game_event",statRegister.toJsonString());
+		executePost("register_game_event",statRegister.buildJson());
 
 	}
 
@@ -176,10 +176,9 @@ public class GamesensePlugin extends Plugin
 			registerStat(TrackedStats.SPECIAL_ATTACK,0);
 	}
 
+	public void executePost(String extraAddress, JsonObject jsonData)  {
 
-	public void executePost(String extraAddress, String jsonData)  {
-
-		RequestBody body = RequestBody.create(MediaType.parse("application/json"),jsonData);
+		RequestBody body = RequestBody.create(MediaType.parse("application/json"),jsonData.toString());
 		Request request = new Request.Builder()
 				.url(sse3Address +"/"+ extraAddress)
 				.post(body)

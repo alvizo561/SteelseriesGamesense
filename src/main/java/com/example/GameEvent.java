@@ -12,7 +12,7 @@ public class GameEvent {
         this.gameEvent = gameEvent;
         this.value = value;
     }
-    private JsonObject buildJson(){
+    public JsonObject buildJson(){
         JsonObject object = new JsonObject();
         object.addProperty("game",game);
         object.addProperty("event",gameEvent.name());

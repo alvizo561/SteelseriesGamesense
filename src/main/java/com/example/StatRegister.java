@@ -16,7 +16,7 @@ public class StatRegister {
         this.maxvalue = maxvalue;
         this.iconId = iconId;
     }
-    private JsonObject buildJson(){
+    public JsonObject buildJson(){
         JsonObject object = new JsonObject();
         object.addProperty("game",game);
         object.addProperty("event",gameEvent.name());
