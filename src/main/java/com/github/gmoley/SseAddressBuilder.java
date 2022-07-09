@@ -1,4 +1,4 @@
-package com.example;
+package com.github.gmoley;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;

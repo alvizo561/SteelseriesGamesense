@@ -1,9 +1,7 @@
-package com.example;
+package com.github.gmoley;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import javax.inject.Inject;
-import javax.swing.*;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
@@ -17,9 +15,7 @@ import okhttp3.*;
 
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.Charset;
+
 
 @Slf4j
 @PluginDescriptor(
@@ -81,14 +77,14 @@ public class GamesensePlugin extends Plugin
 			if (statChanged.getSkill() == Skill.PRAYER && currentPrayer ==statChanged.getBoostedLevel()){}
 			else if (statChanged.getSkill() == Skill.HITPOINTS && currentHp ==statChanged.getBoostedLevel()){}
 			else {
-				lastXp = statChanged.getXp();
-				int start = getStartXpOfLvl(statChanged.getLevel());
-				int end = getEndXPOfLvl(statChanged.getLevel());
-				int percent = (lastXp-start) *100 / (end-start);
-
-				if (percent > 100) {percent = 100;}
-				GameEvent event = new GameEvent(TrackedStats.CURRENTSKILL,percent);
+				int currentXP = client.getSkillExperience(statChanged.getSkill());
+				int currentLevel = Experience.getLevelForXp(currentXP);
+				int currentLevelXP = Experience.getXpForLevel(currentLevel);
+				int nextLevelXP = currentLevel >= Experience.MAX_VIRT_LEVEL ? Experience.MAX_SKILL_XP : Experience.getXpForLevel(currentLevel + 1);
+				int percent = (int) (Math.min(1.0, (currentXP - currentLevelXP) / (double)(nextLevelXP - currentLevelXP))*100);
+				GameEvent event = new GameEvent(TrackedStats.CURRENTSKILL,  percent);
 				executePost("game_event ",event.buildJson());
+
 			}
 		}
 
@@ -102,6 +98,7 @@ public class GamesensePlugin extends Plugin
 	}
 	private void sendSpecialAttackPercent(){
 		GameEvent event = new GameEvent(TrackedStats.SPECIAL_ATTACK,client.getVar(VarPlayer.SPECIAL_ATTACK_PERCENT)/10);
+
 		executePost("game_event ",event.buildJson());//update the special attack
 
 	}
@@ -190,27 +187,5 @@ public class GamesensePlugin extends Plugin
 	} catch (IOException e){
 		e.printStackTrace();
 	}
-
-	}
-	private int getEndXPOfLvl(int lvl){
-		int xp = getStartXpOfLvl(lvl) + getXpForLvl(lvl);
-
-		return xp;
-	}
-
-	private int getStartXpOfLvl(int lvl){
-		int total =0;
-		for (int i =1;i<=lvl;i++){
-			total += getXpForLvl(i);
-		}
-
-		return total;
-	}
-
-	private int getXpForLvl(int lvl){
-		double exp = (float)(lvl-1)/7;
-		double amount = 1.0/4.0 *((lvl-1) + 300*Math.pow(2.0,exp));
-
-		return (int) amount;
 	}
 }

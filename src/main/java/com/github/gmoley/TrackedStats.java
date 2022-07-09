@@ -1,4 +1,4 @@
-package com.example;
+package com.github.gmoley;
 
 
 public enum TrackedStats {
